@@ -11,10 +11,12 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from core.models import Recipe, Tag, Ingredient
-from recipe.serializers import RecipeSerializer, RecipeDetailSerializer
+from recipe.serializers import RecipeSerializer, RecipeDetailSerializer, TagSerializer, IngredientSerializer
 
 
 RECIPE_URL = reverse('recipe:recipe-list')
+TAGS_URL = reverse('recipe:tag-list')
+INGREDIENTS_URL = reverse('recipe:ingredient-list')
 
 
 def image_upload_url(recipe_id):
@@ -297,3 +299,45 @@ class RecipeImageUploadTests(TestCase):
         self.assertIn(serializer1.data, res.data)
         self.assertIn(serializer2.data, res.data)
         self.assertNotIn(serializer3.data, res.data)
+
+    def test_retrieve_tags_assigned_to_recipes(self):
+        """Test filtering tags assigned to recipes"""
+        tag1 = Tag.objects.create(user=self.user, name='Breakfast')
+        tag2 = Tag.objects.create(user=self.user, name='Lunch')
+        recipe = Recipe.objects.create(
+            title='Corriandor and toast',
+            time_minutes=10,
+            price=5.00,
+            user=self.user
+        )
+
+        recipe.tags.add(tag1)
+
+        res = self.client.get(TAGS_URL, {'assigned_only': 1})
+
+        serializer1 = TagSerializer(tag1)
+        serializer2 = TagSerializer(tag2)
+
+        self.assertIn(serializer1.data, res.data)
+        self.assertNotIn(serializer2.data, res.data)
+
+    def test_retrieve_ingredients_assigned_to_recipes(self):
+        """Test retrieving ingredients assigned to recipes"""
+        ingredient1 = Ingredient.objects.create(user=self.user, name='Apples')
+        ingredient2 = Ingredient.objects.create(user=self.user, name='Turkey')
+        recipe = Recipe.objects.create(
+            title='Apples crumbles',
+            time_minutes=5,
+            price=10,
+            user=self.user
+        )
+
+        recipe.ingredients.add(ingredient1)
+
+        res = self.client.get(INGREDIENTS_URL, {'assigned_only': 1})
+
+        serializer1 = IngredientSerializer(ingredient1)
+        serializer2 = IngredientSerializer(ingredient2)
+
+        self.assertIn(serializer1.data, res.data)
+        self.assertNotIn(serializer2.data, res.data)
