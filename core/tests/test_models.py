@@ -77,3 +77,15 @@ class ModelTest(TestCase):
         exp_file_path = f'uploads/recipe/{uuid}.jpg'
 
         self.assertEqual(file_path, exp_file_path)
+
+    def test_school_str(self):
+        """Test school object string representation"""
+        school = models.School.objects.create(
+            name='Amass',
+            motto='Unique Amass',
+            code='0100106',
+            address='Charia Road',
+            city='Wa',
+            region='UW'
+        )
+        self.assertEqual(str(school), school.name)

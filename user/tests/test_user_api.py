@@ -1,3 +1,5 @@
+import uuid
+
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.urls import reverse
@@ -5,14 +7,27 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
 
+from core.models import School
+
 
 CREATE_USER_URL = reverse('user:create')
 TOKEN_URL = reverse('user:token')
 ME_URL = reverse('user:me')
 
 
+def create_sample_school():
+    return School.objects.create(
+        name=uuid.uuid4(),
+        address='sandemuni Rd',
+        city='Wa',
+        region='UW'
+    )
+
+
 def create_user(**params):
-    return get_user_model().objects.create_user(**params)
+    user = get_user_model().objects.create_user(**params)
+    user.school = create_sample_school()
+    return user
 
 
 class PublicUserAPITest(TestCase):
@@ -20,44 +35,6 @@ class PublicUserAPITest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-
-    def test_create_valid_user_success(self):
-        """Test creating user with valid payload is successful"""
-        payload = {
-            'email': 'test@twysolutions.com',
-            'password': 'testpass',
-            'name': 'Test User'
-        }
-        res = self.client.post(CREATE_USER_URL, payload)
-        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
-        user = get_user_model().objects.get(**res.data)
-        self.assertTrue(user.check_password(payload['password']))
-        self.assertNotIn('password', res.data)
-
-    def test_user_exist(self):
-        """Test creating user that already exist fails"""
-        payload = {
-            'email': 'test@twysolutions.com',
-            'password': 'testpass',
-            'name': 'Test User'
-        }
-        create_user(**payload)
-
-        res = self.client.post(CREATE_USER_URL, payload)
-
-        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_password_too_short(self):
-        """Test that the password must be more than 5 characters"""
-        payload = {
-            'email': 'test@twysolutions.com',
-            'password': 'pw',
-            'name': 'Test User'
-        }
-        res = self.client.post(CREATE_USER_URL, payload)
-        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
-        user_exists = get_user_model().objects.filter(email=payload['email']).exists()
-        self.assertFalse(user_exists)
 
     def test_create_token_for_user(self):
         """Test that a token is created for user"""
@@ -103,12 +80,50 @@ class PrivateUserAPITests(TestCase):
     """Test API requests that requires authentication"""
     def setUp(self):
         self.user = create_user(
-            email='test@twysolutions.com',
-            password='testpass',
-            name='name'
+            email='force_usr@twysolutions.com',
+            password='force_user_pass',
+            name='Force User'
         )
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
+
+    def test_create_valid_user_success(self):
+        """Test creating user with valid payload is successful"""
+        payload = {
+            'email': 'test@twysolutions.com',
+            'password': 'testpass',
+            'name': 'Test User'
+        }
+        res = self.client.post(CREATE_USER_URL, payload)
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        user = get_user_model().objects.get(**res.data)
+        self.assertTrue(user.check_password(payload['password']))
+        self.assertNotIn('password', res.data)
+
+    def test_user_exist(self):
+        """Test creating user that already exist fails"""
+        payload = {
+            'email': 'test1@twysolutions.com',
+            'password': 'testpass',
+            'name': 'Test User'
+        }
+        create_user(**payload)
+
+        res = self.client.post(CREATE_USER_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_password_too_short(self):
+        """Test that the password must be more than 5 characters"""
+        payload = {
+            'email': 'test@twysolutions.com',
+            'password': 'pw',
+            'name': 'Test User'
+        }
+        res = self.client.post(CREATE_USER_URL, payload)
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        user_exists = get_user_model().objects.filter(email=payload['email']).exists()
+        self.assertFalse(user_exists)
 
     def test_retrive_profile_success(self):
         """Test retrieve profile for login user"""

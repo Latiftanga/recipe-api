@@ -9,6 +9,9 @@ class UserCreateAPIView(generics.CreateAPIView):
     """Create a new user in the system"""
     serializer_class = UserSerializer
 
+    def perform_create(self, serializer):
+        serializer.save(school=self.request.user.school)
+
 
 class CreateTokenAPIView(ObtainAuthToken):
     """Create a new token for a user"""
