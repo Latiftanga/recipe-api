@@ -49,6 +49,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     name = models.CharField(max_length=255, null=True, blank=True)
     school = models.ForeignKey('School', on_delete=models.CASCADE, null=True, related_name='users')
     is_staff = models.BooleanField(default=False)
+    is_teacher = models.BooleanField(default=False)
     is_student = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
 
